@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func helper() {
+func variables() {
 	const name = "M.Mohsin"
 	var age = 20
 	fmt.Println("Name:", name)
