@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	fmt.Println("Hello World") //to print with linebreak
@@ -15,5 +17,8 @@ func main() {
 	//sliceUsage()
 	// forLoop()
 	// ifElse()
-	switchUsage()
+	//switchUsage()
+	mapUsage()
+
+	// helper.Hello()
 }
