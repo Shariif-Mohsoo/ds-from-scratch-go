@@ -18,7 +18,8 @@ func main() {
 	// forLoop()
 	// ifElse()
 	//switchUsage()
-	mapUsage()
+	//mapUsage()
+	structUsage()
 
 	// helper.Hello()
 }
