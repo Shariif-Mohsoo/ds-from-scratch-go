@@ -9,6 +9,7 @@ func main() {
 	fmt.Println("Hello")
 	//other functions from other files
 	// variables()
+	// sameLineVariableDeclaraion()
 	// formattedData()
 	// dataTypes()
 	// syntaticSugar()
@@ -17,9 +18,12 @@ func main() {
 	//sliceUsage()
 	// forLoop()
 	// ifElse()
+	airthmaticOperations()
 	//switchUsage()
 	//mapUsage()
-	structUsage()
+	// structUsage()
+	// goRoutines()
 
+	// pracitce()
 	// helper.Hello()
 }
