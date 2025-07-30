@@ -10,7 +10,7 @@ func counter() func() int {
 	}
 }
 
-func closure() {
+func Closure() {
 	next := counter()
 	fmt.Print("\n\n\n")
 	fmt.Println(next())
