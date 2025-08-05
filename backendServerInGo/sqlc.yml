@@ -1,0 +1,17 @@
+# This specifies the version of the SQLC configuration
+version: "2"
+
+sql:
+  # This is the folder where your database schema (CREATE TABLE, etc.) files are located
+  - schema: "sql/schema"
+
+    # This is the folder where your SQL query files (INSERT, SELECT, etc.) are written
+    queries: "sql/queries"
+
+    # The type of database you're using (in this case, PostgreSQL)
+    engine: "postgresql"
+
+    gen:
+      go:
+        # This is where SQLC will generate Go code (structs and functions) based on your SQL files
+        out: "internal/database"
