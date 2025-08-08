@@ -42,7 +42,7 @@ func (apiCfg *apiConfig) handlerCreateFeedFollow(w http.ResponseWriter, r *http.
 	// - a new unique ID for the user
 	// - current time for CreatedAt and UpdatedAt
 	// - the name received from the request
-	feed, err := apiCfg.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+	feedFollow, err := apiCfg.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),       // Generate a new unique ID
 		CreatedAt: time.Now().UTC(), // Set current UTC time for when user was created
 		UpdatedAt: time.Now().UTC(), // Set current UTC time for when user was updated
@@ -57,25 +57,26 @@ func (apiCfg *apiConfig) handlerCreateFeedFollow(w http.ResponseWriter, r *http.
 	}
 
 	// If user creation was successful, return the user data as JSON with 200 OK status
-	respondWithJSON(w, 201, databaseFeedToFeed(feed))
+	respondWithJSON(w, 201, databaseFeedFollowToFeedFollow(feedFollow))
 }
 
 // Parameters:
 // - w: http.ResponseWriter → sends the response back to the client (like a browser or API tool)
 // - r: *http.Request → represents the incoming HTTP request that contains user data
-func (apiCfg *apiConfig) handlerGetFeeds(w http.ResponseWriter, r *http.Request) {
+func (apiCfg *apiConfig) handlerGetFeedFollows(w http.ResponseWriter, r *http.Request, user database.User) {
 	// Call the CreateUser function from your database package to save the new user
 	// Passing:
 	// - a new unique ID for the user
 	// - current time for CreatedAt and UpdatedAt
 	// - the name received from the request
-	feeds, err := apiCfg.DB.GetFeeds(r.Context())
+	feedFollows, err := apiCfg.DB.GetFeedFollows(r.Context(), user.ID)
+
 	if err != nil {
 		// If something went wrong while creating the user in DB, return an error
-		respondWithError(w, 400, fmt.Sprintf("Couldn't get feeds: %v", err))
+		respondWithError(w, 400, fmt.Sprintf("Couldn't get feed follow: %v", err))
 		return
 	}
 
 	// If user creation was successful, return the user data as JSON with 200 OK status
-	respondWithJSON(w, 200, databaseFeedsToFeeds(feeds))
+	respondWithJSON(w, 200, databaseFeedFollowsToFeedFollows(feedFollows))
 }
