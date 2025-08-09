@@ -7,7 +7,8 @@ import (
 	"time"          // For working with timestamps
 
 	"github.com/Shariif-Mohsoo/ds-from-scratch-go/rssagg/internal/database" // Your internal database package
-	"github.com/google/uuid"                                                // For generating unique user IDs
+	"github.com/go-chi/chi"
+	"github.com/google/uuid" // For generating unique user IDs
 )
 
 // This is a method of the `apiConfig` struct
@@ -79,4 +80,27 @@ func (apiCfg *apiConfig) handlerGetFeedFollows(w http.ResponseWriter, r *http.Re
 
 	// If user creation was successful, return the user data as JSON with 200 OK status
 	respondWithJSON(w, 200, databaseFeedFollowsToFeedFollows(feedFollows))
+}
+
+// Parameters:
+// - w: http.ResponseWriter → sends the response back to the client (like a browser or API tool)
+// - r: *http.Request → represents the incoming HTTP request that contains user data
+func (apiCfg *apiConfig) handlerDeleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedFollowIDStr := chi.URLParam(r, "feedFollowID")
+	feedFollowID, err := uuid.Parse(feedFollowIDStr)
+	if err != nil {
+		// If something went wrong while creating the user in DB, return an error
+		respondWithError(w, 400, fmt.Sprintf("Couldn't parse feed follow id: %v", err))
+		return
+	}
+	err = apiCfg.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+		ID:     feedFollowID,
+		UserID: user.ID,
+	})
+	if err != nil {
+		// If something went wrong while creating the user in DB, return an error
+		respondWithError(w, 400, fmt.Sprintf("Couldn't delete feed follow: %v", err))
+		return
+	}
+	respondWithJSON(w, 200, struct{}{})
 }
