@@ -20,3 +20,10 @@ VALUES(
         $8
     )
 returning *;
+-- name: GetPostsForUser :many
+SELECT posts.*
+from posts
+    join feed_follows on posts.feed_id == feed_follows.feed_id
+where feed_follows.user_id = $1
+order by posts.published_at desc
+limit $2;

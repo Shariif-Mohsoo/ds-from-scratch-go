@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json" // For decoding JSON data from the request body
 	"fmt"           // For formatting error messages
 	"net/http"      // For handling HTTP requests and responses
@@ -71,4 +72,23 @@ func (apiCfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request, 
 	// Convert the database user format to a clean user format (for JSON)
 	// Then send it as a JSON response with status code 200 (OK)
 	respondWithJSON(w, 200, databaseUserToUser(user))
+}
+
+// Parameters:
+// - apiCfg: *apiConfig → your app's configuration, giving access to database and other settings
+// - w: http.ResponseWriter → used to send the response back to the client (like a browser or API client)
+// - r: *http.Request → the incoming HTTP request (not used here, but required)
+// - user: database.User → the user who has already been authenticated (passed from middleware)
+func (apiCfg *apiConfig) handlerGetPostsForUser(w http.ResponseWriter, r *http.Request, user database.User) {
+	posts, err := apiCfg.DB.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  10,
+	})
+
+	if err != nil {
+		respondWithError(w, 400, fmt.Sprintf("Couldn't get posts: %v", err))
+		return
+	}
+	respondWithJSON(w, 200, databasePostsToPosts(posts))
+
 }
