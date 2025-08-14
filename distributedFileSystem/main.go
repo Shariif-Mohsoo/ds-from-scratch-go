@@ -1,7 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/anthdm/foreverstore/p2p"
+)
 
 func main() {
-	fmt.Println("We Gucci!")
+	tr := p2p.NewTCPTransport(":3000")
+	if err := tr.ListenAndAccept(); err != nil {
+		log.Fatal(tr.ListenAndAccept())
+	}
+	select {}
 }
