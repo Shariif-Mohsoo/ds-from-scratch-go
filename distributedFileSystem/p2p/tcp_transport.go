@@ -39,6 +39,10 @@ type TCPTransport struct {
 	// listener is the TCP listener that accepts new connections
 	listener net.Listener
 
+	shakeHands HandshakeFunc
+
+	decoder Decoder
+
 	// mu (mutex) is used to lock and protect 'peers' map from concurrent access
 	mu sync.Mutex
 
@@ -51,6 +55,7 @@ type TCPTransport struct {
 // - listenAddr: the TCP address/port where we will listen for new connections
 func NewTCPTransport(listenAddr string) *TCPTransport {
 	return &TCPTransport{
+		shakeHands:    NOPHandShakeFunc,
 		listenAddress: listenAddr,
 	}
 }
@@ -96,11 +101,16 @@ func (t *TCPTransport) startAcceptLoop() {
 			fmt.Printf("TCP accept error: %s\n", err)
 		}
 
+		// %+v shows field names and their values.
+		fmt.Printf("new incoming connection %+v\n", conn)
+
 		// Once we have a new connection, handle it in a separate goroutine.
 		// This allows the loop to immediately go back to listening for more peers.
 		go t.handleConn(conn)
 	}
 }
+
+type Temp struct{}
 
 // handleConn is called whenever we get a new TCP connection.
 // It wraps the raw connection into a TCPPeer object and logs the connection.
@@ -114,7 +124,19 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 	// was initiated by us or by the remote peer.
 	peer := NewTCPPeer(conn, true)
 
+	if err := t.shakeHands(conn); err != nil {
+
+	}
+
+	//Read Loop
+	msg := &Temp{}
+	for {
+		if err := t.decoder.Decode(conn, msg); err != nil {
+			fmt.Printf("TCP error: %s\n", err)
+			continue
+		}
+	}
+
 	// Print out the details of the new peer for debugging/logging purposes.
-	// %+v shows field names and their values.
-	fmt.Printf("new incoming connection %+v\n", peer)
+
 }
