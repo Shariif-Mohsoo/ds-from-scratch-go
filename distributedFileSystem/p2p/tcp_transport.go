@@ -29,19 +29,20 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+type TCPTransportOpts struct {
+	// listenAddress is where this transport listens for incoming TCP connections
+	// Example: ":8080" means listen on port 8080 on all interfaces
+	ListenAddr    string
+	HandshakeFunc HandshakeFunc
+	Decoder       Decoder
+}
+
 // TCPTransport handles listening for new TCP connections
 // and keeping track of connected peers.
 type TCPTransport struct {
-	// listenAddress is where this transport listens for incoming TCP connections
-	// Example: ":8080" means listen on port 8080 on all interfaces
-	listenAddress string
-
+	TCPTransportOpts
 	// listener is the TCP listener that accepts new connections
 	listener net.Listener
-
-	shakeHands HandshakeFunc
-
-	decoder Decoder
 
 	// mu (mutex) is used to lock and protect 'peers' map from concurrent access
 	mu sync.Mutex
@@ -53,10 +54,9 @@ type TCPTransport struct {
 // NewTCPTransport creates and returns a pointer to a TCPTransport instance.
 // Parameters:
 // - listenAddr: the TCP address/port where we will listen for new connections
-func NewTCPTransport(listenAddr string) *TCPTransport {
+func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
-		shakeHands:    NOPHandShakeFunc,
-		listenAddress: listenAddr,
+		TCPTransportOpts: opts,
 	}
 }
 
@@ -74,7 +74,7 @@ func (t *TCPTransport) ListenAndAccept() error {
 	var err error
 
 	// Start listening for TCP connections on t.listenAddress (e.g., ":8080")
-	t.listener, err = net.Listen("tcp", t.listenAddress)
+	t.listener, err = net.Listen("tcp", t.ListenAddr)
 	if err != nil {
 		// If listening fails (e.g., port already in use), return the error
 		return err
@@ -124,17 +124,22 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 	// was initiated by us or by the remote peer.
 	peer := NewTCPPeer(conn, true)
 
-	if err := t.shakeHands(conn); err != nil {
+	if err := t.HandshakeFunc(peer); err != nil {
+		conn.Close()
+		fmt.Printf("TCP handshake error %s\n", err)
+		return
 
 	}
 
 	//Read Loop
-	msg := &Temp{}
+	msg := &Message{}
 	for {
-		if err := t.decoder.Decode(conn, msg); err != nil {
+		if err := t.Decoder.Decode(conn, msg); err != nil {
 			fmt.Printf("TCP error: %s\n", err)
 			continue
 		}
+		msg.From = conn.RemoteAddr()
+		fmt.Printf("Message: %+v\n", msg)
 	}
 
 	// Print out the details of the new peer for debugging/logging purposes.
