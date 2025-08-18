@@ -7,6 +7,7 @@ package p2p
 // Right now, this interface is empty, which means ANY type
 // automatically satisfies it. (Later, we can add methods like `Close()` or `Send()`.)
 type Peer interface {
+	Close() error
 }
 
 // Transport is an interface for anything that handles communication
@@ -23,4 +24,5 @@ type Transport interface {
 	// ListenAndAccept should start listening for new peer connections
 	// and accept them as they arrive.
 	ListenAndAccept() error
+	Consume() <-chan RPC
 }

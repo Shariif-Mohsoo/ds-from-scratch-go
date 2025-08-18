@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 	"net"
-	"sync"
 )
 
 // TCPPeer represents a remote node (another computer or program)
@@ -29,12 +28,18 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+// TCPPeer is implementing Peer interface.
+func (p *TCPPeer) Close() error {
+	return p.conn.Close()
+}
+
 type TCPTransportOpts struct {
 	// listenAddress is where this transport listens for incoming TCP connections
 	// Example: ":8080" means listen on port 8080 on all interfaces
 	ListenAddr    string
 	HandshakeFunc HandshakeFunc
 	Decoder       Decoder
+	OnPeer        func(Peer) error
 }
 
 // TCPTransport handles listening for new TCP connections
@@ -44,11 +49,7 @@ type TCPTransport struct {
 	// listener is the TCP listener that accepts new connections
 	listener net.Listener
 
-	// mu (mutex) is used to lock and protect 'peers' map from concurrent access
-	mu sync.Mutex
-
-	// peers stores all connected peers, using their network address as the key
-	peers map[net.Addr]Peer
+	rpcch chan RPC
 }
 
 // NewTCPTransport creates and returns a pointer to a TCPTransport instance.
@@ -57,7 +58,14 @@ type TCPTransport struct {
 func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOpts: opts,
+		rpcch:            make(chan RPC),
 	}
+}
+
+// Consume implements the Transport interface, which will return read-only channel
+// for reading the incoming messages from another peer in the network.
+func (t *TCPTransport) Consume() <-chan RPC {
+	return t.rpcch
 }
 
 // ListenAndAccept starts listening for incoming TCP connections
@@ -110,36 +118,46 @@ func (t *TCPTransport) startAcceptLoop() {
 	}
 }
 
-type Temp struct{}
-
 // handleConn is called whenever we get a new TCP connection.
 // It wraps the raw connection into a TCPPeer object and logs the connection.
 //
 // Parameters:
 // - conn: the raw TCP connection to the peer
 func (t *TCPTransport) handleConn(conn net.Conn) {
+	var err error
+	defer func() {
+		fmt.Printf("Dropping peer connection: %s", err)
+		conn.Close()
+	}()
+
 	// Create a new TCPPeer object for this connection.
 	// Here we are setting 'outbound' to true,
 	// but in a real system we might check whether this connection
 	// was initiated by us or by the remote peer.
 	peer := NewTCPPeer(conn, true)
 
-	if err := t.HandshakeFunc(peer); err != nil {
-		conn.Close()
-		fmt.Printf("TCP handshake error %s\n", err)
+	if err = t.HandshakeFunc(peer); err != nil {
 		return
+	}
 
+	if t.OnPeer != nil {
+		if err = t.OnPeer(peer); err != nil {
+			return
+		}
 	}
 
 	//Read Loop
-	msg := &Message{}
+	rpc := RPC{}
 	for {
-		if err := t.Decoder.Decode(conn, msg); err != nil {
-			fmt.Printf("TCP error: %s\n", err)
-			continue
+		err = t.Decoder.Decode(conn, &rpc)
+		if err != nil {
+			// fmt.Printf("TCP Read Error: %s\n", err)
+			// continue
+			return
 		}
-		msg.From = conn.RemoteAddr()
-		fmt.Printf("Message: %+v\n", msg)
+		rpc.From = conn.RemoteAddr()
+		t.rpcch <- rpc
+		// fmt.Printf("Message: %+v\n", rpc)
 	}
 
 	// Print out the details of the new peer for debugging/logging purposes.
