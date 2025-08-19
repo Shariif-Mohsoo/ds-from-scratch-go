@@ -26,7 +26,7 @@ func CASPathTransformFunc(key string) PathKey {
 	// return strings.Join(paths, "/")
 	return PathKey{
 		PathName: strings.Join(paths, "/"),
-		Original: hashStr,
+		Filename: hashStr,
 	}
 }
 
@@ -34,11 +34,11 @@ type PathTransformFunc func(string) PathKey
 
 type PathKey struct {
 	PathName string
-	Original string
+	Filename string
 }
 
-func (p PathKey) FileName() string {
-	return fmt.Sprintf("%s/%s", p.PathName, p.Original)
+func (p PathKey) FullPath() string {
+	return fmt.Sprintf("%s/%s", p.PathName, p.Filename)
 }
 
 type StoreOpts struct {
@@ -59,15 +59,19 @@ func NewStore(opts StoreOpts) *Store {
 	}
 }
 
+func (s *Store) readStream(key string) (io.Reader, error) {
+
+}
+
 func (s *Store) writeStream(key string, r io.Reader) error {
 	PathKey := s.PathTransformFunc(key)
 	if err := os.MkdirAll(PathKey.PathName, os.ModePerm); err != nil {
 		return err
 	}
 
-	pathAndFilename := PathKey.FileName()
+	fullPath := PathKey.FullPath()
 
-	f, err := os.Create(pathAndFilename)
+	f, err := os.Create(fullPath)
 	if err != nil {
 		return err
 	}
@@ -75,7 +79,7 @@ func (s *Store) writeStream(key string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Written (%d) bytes to disk: %s", n, pathAndFilename)
+	log.Printf("Written (%d) bytes to disk: %s", n, fullPath)
 
 	return nil
 }
