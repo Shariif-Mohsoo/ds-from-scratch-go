@@ -14,4 +14,4 @@ run: build
 # 'go test ./...' → find and run all tests in every folder
 # '-v' → verbose mode (show details of each test being run)
 test:
-	@go test ./... -v
+	@go test ./... 

@@ -2,63 +2,76 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
 func TestPathTransformationFunc(t *testing.T) {
 	key := "mineBestPicture"
-	PathKey := CASPathTransformFunc(key)
+	pathKey := CASPathTransformFunc(key)
 	// fmt.Println(pathname)
-	expectedOriginalKey := "7b31db6647a3b5581b88bbe5b9355eabf98796e0"
+	expectedFilename := "7b31db6647a3b5581b88bbe5b9355eabf98796e0"
 	expectedPathName := "7b31d/b6647/a3b55/81b88/bbe5b/9355e/abf98/796e0"
 
-	if PathKey.PathName != expectedPathName {
-		t.Errorf("have %s want %s", PathKey.PathName, expectedPathName)
+	if pathKey.PathName != expectedPathName {
+		t.Errorf("have %s want %s", pathKey.PathName, expectedPathName)
 	}
 
-	if PathKey.Filename != expectedOriginalKey {
-		t.Errorf("have %s want %s", PathKey.Filename, expectedOriginalKey)
+	if pathKey.Filename != expectedFilename {
+		t.Errorf("have %s want %s", pathKey.Filename, expectedFilename)
 	}
 
-}
-
-func TestStoreDeleteKey(t *testing.T) {
-	opts := StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-	}
-	s := NewStore(opts)
-	key := "mySpecialPics"
-	data := []byte("Some jpg bytes")
-	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
-		t.Error(err)
-	}
-	if err := s.Delete(key); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestStore(t *testing.T) {
+	s := newStore()
+	defer teardown(t, s)
+
+	for i := 0; i < 50; i++ {
+		key := fmt.Sprintf("foo_%d", i)
+		data := []byte("Some jpg bytes")
+		if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+			t.Error(err)
+		}
+
+		if ok := s.Has(key); !ok {
+			t.Errorf("Expected to have key %s", key)
+		}
+
+		r, err := s.readStream(key)
+		if err != nil {
+			t.Error(err)
+		}
+
+		b, _ := ioutil.ReadAll(r)
+		fmt.Println(string(b))
+		if string(b) != string(data) {
+			t.Errorf("want %s but get %s", data, b)
+		}
+
+		if err := s.Delete(key); err != nil {
+			t.Error(err)
+		}
+
+		if ok := s.Has(key); ok {
+			t.Errorf("Expected to not have key %s", key)
+		}
+
+	}
+
+}
+
+// helper funcs
+func newStore() *Store {
 	opts := StoreOpts{
 		PathTransformFunc: CASPathTransformFunc,
 	}
-	s := NewStore(opts)
-	key := "mySpecialPics"
-	data := []byte("Some jpg bytes")
-	if err := s.writeStream(key, bytes.NewReader(data)); err != nil {
+	return NewStore(opts)
+}
+
+func teardown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
 		t.Error(err)
 	}
-
-	// r, err := s.readStream(key)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
-
-	// b, _ := ioutil.ReadAll(r)
-	// // fmt.Println(string(b))
-	// if string(b) != string(data) {
-	// 	t.Errorf("want %s but get %s", data, b)
-	// }
-
-	// s.Delete(key)
-
 }

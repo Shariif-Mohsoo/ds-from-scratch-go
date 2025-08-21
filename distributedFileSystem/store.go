@@ -34,8 +34,6 @@ func CASPathTransformFunc(key string) PathKey {
 	}
 }
 
-type PathTransformFunc func(string) PathKey
-
 type PathKey struct {
 	PathName string
 	Filename string
@@ -52,6 +50,8 @@ func (p PathKey) FirstPathName() string {
 func (p PathKey) FullPath() string {
 	return fmt.Sprintf("%s/%s", p.PathName, p.Filename)
 }
+
+type PathTransformFunc func(string) PathKey
 
 type StoreOpts struct {
 	//Root is the folder name of the root, containing all files and folders of the system.
@@ -85,11 +85,16 @@ func NewStore(opts StoreOpts) *Store {
 
 func (s *Store) Has(key string) bool {
 	pathKey := s.PathTransformFunc(key)
-	_, err := os.Stat(pathKey.FullPath())
+	fullPathWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FullPath())
+	_, err := os.Stat(fullPathWithRoot)
 	if errors.Is(err, os.ErrNotExist) {
 		return false
 	}
 	return true
+}
+
+func (s *Store) Clear() error {
+	return os.RemoveAll(s.Root)
 }
 
 func (s *Store) Delete(key string) error {
@@ -100,7 +105,8 @@ func (s *Store) Delete(key string) error {
 	// if err := os.RemoveAll(pathKey.FullPath()); err != nil {
 	// 	return err
 	// }
-	return os.RemoveAll(pathKey.FirstPathName())
+	firstPathNamedWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FirstPathName())
+	return os.RemoveAll(firstPathNamedWithRoot)
 }
 
 func (s *Store) Read(key string) (io.Reader, error) {
@@ -118,7 +124,8 @@ func (s *Store) Read(key string) (io.Reader, error) {
 
 func (s *Store) readStream(key string) (io.ReadCloser, error) {
 	pathKey := s.PathTransformFunc(key)
-	return os.Open(pathKey.FullPath())
+	fullPathWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FullPath())
+	return os.Open(fullPathWithRoot)
 }
 
 func (s *Store) writeStream(key string, r io.Reader) error {
