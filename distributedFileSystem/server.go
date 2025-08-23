@@ -1,18 +1,23 @@
 package main
 
-import "github.com/anthdm/foreverstore/p2p"
+import (
+	"fmt"
+	"log"
+
+	"github.com/anthdm/foreverstore/p2p"
+)
 
 type FileServerOpts struct {
-	ListenAddr        string
 	StorageRoot       string
 	PathTransformFunc PathTransformFunc
 	Transport         p2p.Transport
-	TransportOpts     p2p.TCPTransportOpts
+	BootStrapNodes    []string
 }
 
 type FileServer struct {
 	FileServerOpts
-	store *Store
+	store  *Store
+	quitch chan struct{}
 }
 
 func NewFileServer(opts FileServerOpts) *FileServer {
@@ -23,12 +28,42 @@ func NewFileServer(opts FileServerOpts) *FileServer {
 	return &FileServer{
 		FileServerOpts: opts,
 		store:          NewStore(storeOpts),
+		quitch:         make(chan struct{}),
 	}
 }
 
-func (s *FileServerOpts) Start() error {
+// func (s *FileServer) bootstrapNetwork() error {
+// 	for _, addr := range s.BootStrapNodes {
+// 		//s.Transport.Dial()
+// 	}
+// 	return nil
+// }
+
+func (s *FileServer) Stop() {
+	log.Println("Stop() called, closing quitch")
+	close(s.quitch)
+}
+
+func (s *FileServer) loop() {
+	defer func() {
+		log.Println("File server stopped due to user quit action")
+		s.Transport.Close()
+	}()
+
+	for {
+		select {
+		case msg := <-s.Transport.Consume():
+			fmt.Println(msg)
+		case <-s.quitch:
+			return
+		}
+	}
+}
+
+func (s *FileServer) Start() error {
 	if err := s.Transport.ListenAndAccept(); err != nil {
 		return err
 	}
+	s.loop()
 	return nil
 }

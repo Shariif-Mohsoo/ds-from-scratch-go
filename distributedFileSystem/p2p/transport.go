@@ -23,6 +23,8 @@ type Peer interface {
 type Transport interface {
 	// ListenAndAccept should start listening for new peer connections
 	// and accept them as they arrive.
+	Dial(string) error
 	ListenAndAccept() error
 	Consume() <-chan RPC
+	Close() error
 }

@@ -1,7 +1,9 @@
 package p2p
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -68,6 +70,19 @@ func (t *TCPTransport) Consume() <-chan RPC {
 	return t.rpcch
 }
 
+func (t *TCPTransport) Close() error {
+	return t.listener.Close()
+}
+
+func (t *TCPTransport) Dial(addr string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil
+	}
+	go t.handleConn(conn, true)
+	return nil
+}
+
 // ListenAndAccept starts listening for incoming TCP connections
 // and begins accepting them in a separate loop.
 //
@@ -92,6 +107,8 @@ func (t *TCPTransport) ListenAndAccept() error {
 	// so the program can keep doing other things while waiting for new peers
 	go t.startAcceptLoop()
 
+	log.Printf("TCP transport listening on the port: %s\n", t.ListenAddr)
+
 	// No errors — return nil
 	return nil
 }
@@ -104,6 +121,11 @@ func (t *TCPTransport) startAcceptLoop() {
 		// Wait for a new incoming TCP connection.
 		// This will "pause" here until a peer connects.
 		conn, err := t.listener.Accept()
+
+		if errors.Is(err, net.ErrClosed) {
+			return
+		}
+
 		if err != nil {
 			// If something goes wrong (e.g., network error), log it and continue.
 			fmt.Printf("TCP accept error: %s\n", err)
@@ -114,7 +136,7 @@ func (t *TCPTransport) startAcceptLoop() {
 
 		// Once we have a new connection, handle it in a separate goroutine.
 		// This allows the loop to immediately go back to listening for more peers.
-		go t.handleConn(conn)
+		go t.handleConn(conn, false)
 	}
 }
 
@@ -123,7 +145,7 @@ func (t *TCPTransport) startAcceptLoop() {
 //
 // Parameters:
 // - conn: the raw TCP connection to the peer
-func (t *TCPTransport) handleConn(conn net.Conn) {
+func (t *TCPTransport) handleConn(conn net.Conn, outbound bool) {
 	var err error
 	defer func() {
 		fmt.Printf("Dropping peer connection: %s", err)
@@ -134,7 +156,7 @@ func (t *TCPTransport) handleConn(conn net.Conn) {
 	// Here we are setting 'outbound' to true,
 	// but in a real system we might check whether this connection
 	// was initiated by us or by the remote peer.
-	peer := NewTCPPeer(conn, true)
+	peer := NewTCPPeer(conn, outbound)
 
 	if err = t.HandshakeFunc(peer); err != nil {
 		return
