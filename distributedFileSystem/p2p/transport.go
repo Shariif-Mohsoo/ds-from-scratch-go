@@ -1,5 +1,7 @@
 package p2p
 
+import "net"
+
 // Peer represents a remote node in the network.
 // In Go, an interface is just a "contract" — it defines behavior
 // that other types must implement to be considered a Peer.
@@ -7,6 +9,7 @@ package p2p
 // Right now, this interface is empty, which means ANY type
 // automatically satisfies it. (Later, we can add methods like `Close()` or `Send()`.)
 type Peer interface {
+	RemoteAddr() net.Addr
 	Close() error
 }
 

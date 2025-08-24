@@ -30,6 +30,12 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	}
 }
 
+// RemoteAddr implements the Peer interface and will return the
+// remote address of its underlying connection.
+func (p *TCPPeer) RemoteAddr() net.Addr {
+	return p.conn.RemoteAddr()
+}
+
 // TCPPeer is implementing Peer interface.
 func (p *TCPPeer) Close() error {
 	return p.conn.Close()
@@ -74,10 +80,11 @@ func (t *TCPTransport) Close() error {
 	return t.listener.Close()
 }
 
+// Dial implements the Transport interface....
 func (t *TCPTransport) Dial(addr string) error {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		return nil
+		return err
 	}
 	go t.handleConn(conn, true)
 	return nil
