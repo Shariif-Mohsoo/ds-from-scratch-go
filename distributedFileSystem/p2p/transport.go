@@ -9,8 +9,8 @@ import "net"
 // Right now, this interface is empty, which means ANY type
 // automatically satisfies it. (Later, we can add methods like `Close()` or `Send()`.)
 type Peer interface {
-	RemoteAddr() net.Addr
-	Close() error
+	net.Conn
+	Send([]byte) error
 }
 
 // Transport is an interface for anything that handles communication

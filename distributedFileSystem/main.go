@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 
 	"github.com/anthdm/foreverstore/p2p"
@@ -22,7 +23,11 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 		Transport:         tcpTransport,
 		BootStrapNodes:    nodes,
 	}
-	return NewFileServer(fileServerOpts)
+
+	s := NewFileServer(fileServerOpts)
+	tcpTransport.OnPeer = s.OnPeer
+
+	return s
 
 }
 
@@ -38,4 +43,9 @@ func main() {
 		log.Fatal(s1.Start())
 	}()
 	s2.Start()
+
+	data := bytes.NewReader([]bytes("My big data file here!"))
+
+	s2.StoreFile("key", data)
+
 }

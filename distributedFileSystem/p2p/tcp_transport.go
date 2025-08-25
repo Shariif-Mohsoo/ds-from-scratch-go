@@ -11,8 +11,8 @@ import (
 // that we are connected to using a TCP connection.
 type TCPPeer struct {
 	// conn is the actual network connection to the peer (like a phone line between two people)
-	conn net.Conn
-
+	//conn net.Conn
+	net.Conn
 	// outbound tells us if we started the connection (true) or if they connected to us (false)
 	// outbound == true  → we called them (client)
 	// outbound == false → they called us (server)
@@ -25,21 +25,26 @@ type TCPPeer struct {
 // - outbound: whether this connection was started by us (true) or by them (false)
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
-		conn:     conn,
+		Conn:     conn,
 		outbound: outbound,
 	}
 }
 
-// RemoteAddr implements the Peer interface and will return the
-// remote address of its underlying connection.
-func (p *TCPPeer) RemoteAddr() net.Addr {
-	return p.conn.RemoteAddr()
+func (p *TCPPeer) Send(b []byte) error {
+	_, err := p.Conn.Write(b)
+	return err
 }
 
-// TCPPeer is implementing Peer interface.
-func (p *TCPPeer) Close() error {
-	return p.conn.Close()
-}
+// RemoteAddr implements the Peer interface and will return the
+// remote address of its underlying connection.
+// func (p *TCPPeer) RemoteAddr() net.Addr {
+// 	return p.conn.RemoteAddr()
+// }
+
+// // TCPPeer is implementing Peer interface.
+// func (p *TCPPeer) Close() error {
+// 	return p.conn.Close()
+// }
 
 type TCPTransportOpts struct {
 	// listenAddress is where this transport listens for incoming TCP connections
