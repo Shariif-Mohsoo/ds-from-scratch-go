@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"log"
+	"time"
 
 	"github.com/anthdm/foreverstore/p2p"
 )
@@ -42,10 +43,13 @@ func main() {
 	go func() {
 		log.Fatal(s1.Start())
 	}()
-	s2.Start()
+	time.Sleep(1 * time.Second)
 
-	data := bytes.NewReader([]bytes("My big data file here!"))
+	go s2.Start()
+	time.Sleep(1 * time.Second)
 
-	s2.StoreFile("key", data)
+	data := bytes.NewReader([]byte("My big data file here!"))
+	s2.StoreData("myPrivateData", data)
 
+	select {}
 }
